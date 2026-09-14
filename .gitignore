@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-*/
+public/assets/
+results/
+report/out/
+*.log
+.DS_Store

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>webgpu-bench run</title>
+    <style>
+      html, body { margin: 0; background: #000; overflow: hidden; }
+      canvas { display: block; }
+      #hud { position: fixed; left: 8px; bottom: 8px; color: #7f7; font: 12px/1.4 ui-monospace, monospace; white-space: pre; pointer-events: none; text-shadow: 0 1px 2px #000; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="hud"></div>
+    <script type="module" src="/src/harness/run.ts"></script>
+  </body>
+</html>

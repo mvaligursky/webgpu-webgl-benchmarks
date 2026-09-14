@@ -1,0 +1,35 @@
+{
+  "name": "webgpu-webgl-benchmarks",
+  "version": "1.0.0",
+  "description": "Reproducible WebGPU and WebGL2 benchmarks of three.js, PlayCanvas and Babylon.js across Chrome, Firefox and Safari",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "fetch-assets": "tsx scripts/fetch-assets.ts",
+    "bench": "tsx scripts/run.ts",
+    "bundle-size": "tsx scripts/bundle-size.ts",
+    "report": "tsx scripts/report.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@babylonjs/core": "9.26.0",
+    "@babylonjs/loaders": "9.26.0",
+    "playcanvas": "2.22.2",
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "@types/three": "^0.186.0",
+    "@webgpu/types": "^0.1.72",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  },
+  "type": "module",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/endel/webgpu-webgl-benchmarks.git"
+  }
+}

@@ -1,0 +1,867 @@
+<title>WebGPU Engine Bench</title>
+<meta name="description" content="three.js, PlayCanvas and Babylon.js measured on WebGPU and WebGL2 across Chrome, Safari and Firefox.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f2f3f0;
+    --surface: #fcfcfb;
+    --raise: #ffffff;
+    --ink: #121513;
+    --ink-2: #4a514c;
+    --muted: #7c837e;
+    --hair: #e0e3de;
+    --axis: #c3c8c3;
+    --wash: #e8ebe6;
+    --e-three: #2a78d6;
+    --e-playcanvas: #eb6834;
+    --e-babylon: #1baf7a;
+    --e-three-classic: #8d938e;
+    --critical: #d03b3b;
+    --good-ink: #006300;
+    --sel: #121513;
+    --sel-ink: #fcfcfb;
+    --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0e100f;
+      --surface: #161917;
+      --raise: #1d211e;
+      --ink: #eef1ee;
+      --ink-2: #b6bdb8;
+      --muted: #848b86;
+      --hair: #282c29;
+      --axis: #3a3f3b;
+      --wash: #222623;
+      --e-three: #3987e5;
+      --e-playcanvas: #d95926;
+      --e-babylon: #199e70;
+      --e-three-classic: #7b817d;
+      --good-ink: #0ca30c;
+      --sel: #eef1ee;
+      --sel-ink: #0e100f;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0e100f;
+    --surface: #161917;
+    --raise: #1d211e;
+    --ink: #eef1ee;
+    --ink-2: #b6bdb8;
+    --muted: #848b86;
+    --hair: #282c29;
+    --axis: #3a3f3b;
+    --wash: #222623;
+    --e-three: #3987e5;
+    --e-playcanvas: #d95926;
+    --e-babylon: #199e70;
+    --e-three-classic: #7b817d;
+    --good-ink: #0ca30c;
+    --sel: #eef1ee;
+    --sel-ink: #0e100f;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.55 var(--body); -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 40px); padding-block: 44px 96px; }
+  a { color: inherit; text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .mast { display: grid; gap: 18px; padding-bottom: 28px; border-bottom: 1px solid var(--hair); }
+  .kicker { font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font: 800 clamp(40px, 7vw, 76px)/0.95 var(--display); font-stretch: 122%; letter-spacing: -0.025em; margin: 0; text-wrap: balance; }
+  h1 .engines { display: block; font-weight: 600; font-stretch: 100%; font-size: 0.42em; letter-spacing: -0.01em; color: var(--ink-2); margin-top: 14px; }
+  .lede { max-width: 66ch; color: var(--ink-2); font-size: 17px; margin: 0; }
+  .rig { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 12.5px/1.5 var(--mono); color: var(--ink-2); }
+  .rig b { color: var(--ink); font-weight: 500; }
+
+  .filters { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; padding-block: 12px; margin-block: 0 8px; background: color-mix(in oklab, var(--page) 90%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--hair); }
+  .seg { display: inline-flex; align-items: center; gap: 8px; }
+  .seg > span { font: 500 11px/1 var(--mono); letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+  .seg .opts { display: inline-flex; background: var(--wash); border-radius: 8px; padding: 3px; gap: 2px; }
+  .seg label { position: relative; }
+  .seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .seg label span { display: block; padding: 5px 11px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--ink-2); white-space: nowrap; }
+  .seg input:checked + span { background: var(--sel); color: var(--sel-ink); }
+  .seg input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .seg input:disabled + span { opacity: 0.4; }
+
+  section { padding-top: 56px; }
+  h2 { font: 750 clamp(26px, 3.4vw, 34px)/1.05 var(--display); font-stretch: 112%; letter-spacing: -0.015em; margin: 0 0 10px; text-wrap: balance; }
+  h3 { font: 650 19px/1.25 var(--display); font-stretch: 106%; margin: 0; text-wrap: balance; }
+  .sub { color: var(--ink-2); max-width: 70ch; margin: 0 0 22px; }
+  .groupnote { font: 500 12px/1 var(--mono); color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+
+  .card { background: var(--surface); border: 1px solid var(--hair); border-radius: 10px; padding: clamp(16px, 2.2vw, 24px); }
+  .stack { display: grid; gap: 18px; }
+  .scen { display: grid; gap: 16px 28px; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+  .scen-head { grid-column: 1 / -1; display: grid; gap: 6px; }
+  .scen-head p { margin: 0; color: var(--ink-2); max-width: 78ch; font-size: 14.5px; }
+  .scen .id { font: 500 12px/1 var(--mono); color: var(--muted); margin-right: 8px; }
+  .scen.tall { grid-template-columns: minmax(0, 1fr); }
+  .scen.tall .chart { max-width: 820px; }
+  @media (max-width: 880px) { .scen { grid-template-columns: minmax(0, 1fr); } }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+  .key { display: inline-flex; align-items: center; gap: 7px; }
+  .key i { width: 16px; height: 2px; border-radius: 2px; display: inline-block; }
+  .key i.box { width: 10px; height: 10px; border-radius: 3px; }
+  .chart { width: 100%; min-height: 60px; }
+  .chart svg { display: block; overflow: visible; }
+  .chart .grid { stroke: var(--hair); stroke-width: 1; }
+  .chart .axis { stroke: var(--axis); stroke-width: 1; }
+  .chart .tick { fill: var(--muted); font: 11px var(--body); font-variant-numeric: tabular-nums; }
+  .chart .axis-label { fill: var(--muted); font: 11px var(--body); }
+  .chart .budget { stroke: var(--critical); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.7; }
+  .chart .budget-label { fill: var(--ink-2); font: 500 11px var(--body); }
+  .chart .line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .chart .dot { stroke: var(--surface); stroke-width: 2; }
+  .chart .cross { stroke: var(--axis); stroke-width: 1; }
+  .chart .rowlabel { fill: var(--ink-2); font: 13px var(--body); }
+  .chart .val { fill: var(--ink); font: 500 12px var(--body); font-variant-numeric: tabular-nums; }
+  .chart .status { fill: var(--muted); font: italic 12px var(--body); }
+  .chart .hit { fill: transparent; }
+  .chart .hit:hover + .mark, .chart .mark.on { filter: brightness(1.12); }
+  .empty { color: var(--muted); font-style: italic; margin: 12px 0; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .tbl { overflow-x: auto; }
+  th, td { padding: 6px 10px 6px 0; text-align: right; border-bottom: 1px solid var(--hair); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { font: 500 11px/1.2 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--axis); }
+  td.eng { color: var(--ink); font-weight: 500; }
+  td .st { color: var(--muted); font-style: italic; }
+  td .st.bad { color: var(--critical); font-style: normal; }
+  td .flag { color: var(--critical); margin-left: 3px; }
+  .dotkey { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
+  .pathnote { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; display: grid; gap: 3px; }
+  .pathnote b { color: var(--ink-2); font-weight: 500; }
+
+  .board td { padding-block: 9px; }
+  .board td.best { font-weight: 600; }
+  .meter { display: inline-block; width: 64px; height: 6px; border-radius: 0 3px 3px 0; background: var(--wash); vertical-align: middle; margin-left: 10px; overflow: hidden; }
+  .meter > i { display: block; height: 100%; border-radius: 0 3px 3px 0; }
+  .pill { display: inline-block; font: 500 10.5px/1 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 6px; border-radius: 4px; background: var(--wash); color: var(--ink-2); margin-left: 8px; vertical-align: 1px; }
+  .scen-title-cell { display: grid; gap: 1px; }
+  .scen-title-cell small { color: var(--muted); font-size: 11.5px; }
+
+  .bgrid { display: grid; grid-template-columns: minmax(150px, 1.1fr) repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--axis); }
+  .bgrid > div { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--hair); }
+  .bgrid .hd { font: 500 11px/1.2 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding-block: 8px; }
+  .mini { display: grid; grid-template-columns: 54px minmax(0, 1fr) 58px; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+  .mini .bar { height: 7px; border-radius: 0 4px 4px 0; min-width: 2px; }
+  .mini .v { text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
+  @media (max-width: 760px) { .bgrid { grid-template-columns: minmax(0, 1fr); } .bgrid .hd:not(:first-child) { display: none; } .bgrid .ecell::before { content: attr(data-engine); display: block; font: 500 11px var(--mono); color: var(--muted); text-transform: uppercase; margin-bottom: 4px; } }
+
+  .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  @media (max-width: 880px) { .two { grid-template-columns: minmax(0, 1fr); } }
+
+  .gallery { display: grid; grid-template-columns: minmax(96px, 150px) repeat(3, minmax(0, 1fr)); gap: 10px 12px; align-items: center; }
+  .gallery .hd { font: 500 11px/1.2 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+  .gallery img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; border: 1px solid var(--hair); display: block; background: var(--wash); }
+  .gallery .miss { aspect-ratio: 16 / 9; border-radius: 6px; border: 1px dashed var(--axis); display: grid; place-items: center; color: var(--muted); font-size: 12px; text-align: center; padding: 6px; }
+  .gallery .lab { font-size: 13px; color: var(--ink-2); }
+  @media (max-width: 640px) { .gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); } .gallery .lab { grid-column: 1 / -1; margin-top: 8px; } .gallery .hd.first { display: none; } }
+
+  .findings { display: grid; gap: 14px; counter-reset: f; }
+  .finding { display: grid; grid-template-columns: 5px minmax(0, 1fr); gap: 16px; }
+  .finding::before { content: ""; border-radius: 3px; background: var(--axis); }
+  .finding h3 { margin-bottom: 4px; }
+  .finding p { margin: 0; color: var(--ink-2); max-width: 78ch; }
+
+  .feat td { white-space: normal; text-align: left; vertical-align: top; min-width: 150px; }
+  .feat td:first-child { color: var(--ink-2); min-width: 170px; }
+  .method { columns: 2 340px; column-gap: 40px; color: var(--ink-2); font-size: 14.5px; }
+  .method p { margin: 0 0 12px; break-inside: avoid; }
+  .method b { color: var(--ink); font-weight: 600; }
+  code, .mono { font-family: var(--mono); font-size: 0.9em; }
+
+  #tip { position: fixed; z-index: 20; pointer-events: none; background: var(--raise); color: var(--ink); border: 1px solid var(--hair); border-radius: 8px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14); padding: 9px 11px; font-size: 12.5px; min-width: 170px; }
+  #tip[hidden] { display: none; }
+  #tip .t { font: 500 11px var(--mono); color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
+  #tip .r { display: grid; grid-template-columns: 14px auto 1fr; gap: 8px; align-items: center; padding: 1px 0; }
+  #tip .r i { height: 2px; border-radius: 2px; }
+  #tip .r b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  #tip .r span { color: var(--ink-2); }
+  footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--hair); color: var(--muted); font-size: 12.5px; }
+  @media (prefers-reduced-motion: no-preference) { .seg label span { transition: background 120ms, color 120ms; } }
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="kicker" id="kicker">Benchmark report</div>
+    <h1>WebGPU Engine Bench<span class="engines">three.js · PlayCanvas · Babylon.js</span></h1>
+    <p class="lede">The same deterministic scenes built in three engines, measured frame by frame on WebGPU and WebGL2 in Chrome, Safari and Firefox. Every scene renders identical geometry, lights and camera at 1920×1080 with 4× MSAA and ACES tone mapping; the harness owns the frame loop and times each engine through the same WebGPU instrumentation.</p>
+    <div class="rig" id="rig"></div>
+  </header>
+
+  <div class="filters" id="filters" role="group" aria-label="Filters for every chart below"></div>
+
+  <section id="findings-sec" hidden>
+    <h2>What the numbers say</h2>
+    <div class="findings" id="findings"></div>
+  </section>
+
+  <section>
+    <h2>Scoreboard</h2>
+    <p class="sub" id="board-sub"></p>
+    <div class="card tbl"><table class="board" id="board"></table></div>
+  </section>
+
+  <div id="groups"></div>
+
+  <section>
+    <h2>Same engine, three WebGPU implementations</h2>
+    <p class="sub">CPU time per frame for each engine in Chrome (Dawn), Safari (WebKit) and Firefox (wgpu). CPU time is the one metric every browser reports identically — Safari caps the frame rate at the display refresh and Firefox's GPU timestamps are disabled (see methodology). Mid-ladder level for each scenario, current backend and path.</p>
+    <div class="card"><div class="bgrid" id="browsers"></div></div>
+  </section>
+
+  <section>
+    <h2>What WebGPU buys each engine</h2>
+    <p class="sub" id="speedup-sub"></p>
+    <div class="card"><div class="legend" id="speedup-legend"></div><div class="chart" id="speedup"></div></div>
+  </section>
+
+  <section>
+    <h2>How each engine drives the GPU</h2>
+    <p class="sub">WebGPU calls per frame recorded by the harness's probe (not the engine's own counters) for 1,000 animated meshes, plus live GPU memory from every buffer and texture the engine allocated.</p>
+    <div class="card tbl"><table id="calls"></table></div>
+  </section>
+
+  <section>
+    <h2>Startup and footprint</h2>
+    <p class="sub">Shipped JavaScript for the smallest lit-cube app (tree-shaken, minified, brotli) and the time from navigation to the first rendered frame.</p>
+    <div class="two">
+      <div class="card"><h3>Bundle size</h3><p class="pathnote">Brotli-compressed, initial chunks of a minimal WebGPU app.</p><div class="chart" id="bundle"></div><div class="tbl" id="bundle-tbl"></div></div>
+      <div class="card"><h3>Time to first frame</h3><p class="pathnote" id="ttff-note"></p><div class="chart" id="ttff"></div><div class="tbl" id="ttff-tbl"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Did they render the same thing?</h2>
+    <p class="sub">Frame 60 of each scene in Chrome on WebGPU, captured by the harness. Identical data in, so any visible difference is the engine's lighting model or defaults.</p>
+    <div class="card"><div class="gallery" id="gallery"></div></div>
+  </section>
+
+  <section>
+    <h2>Beyond the numbers</h2>
+    <p class="sub">What each engine offers on WebGPU today, as used to build this benchmark.</p>
+    <div class="card tbl"><table class="feat" id="features"></table></div>
+  </section>
+
+  <section>
+    <h2>Methodology and caveats</h2>
+    <div class="method" id="method"></div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+<div id="tip" hidden role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+const ENG = {
+  three: { label: 'three.js', color: 'var(--e-three)' },
+  playcanvas: { label: 'PlayCanvas', color: 'var(--e-playcanvas)' },
+  babylon: { label: 'Babylon.js', color: 'var(--e-babylon)' },
+  'three-classic': { label: 'three.js WebGLRenderer', color: 'var(--e-three-classic)' },
+};
+const MAIN = ['three', 'playcanvas', 'babylon'];
+const REP = { s1: 5000, s2: 100, s3: 100000, s4: 32, s8: 50, s8b: 50, s9: 1000000 };
+const GROUPS = [
+  { title: 'CPU and draw calls', note: 'Scene graph, culling and command submission', ids: ['s1', 's2'] },
+  { title: 'GPU rendering features', note: 'Instancing, lighting, shadows, post', ids: ['s3', 's4', 's5', 's6'] },
+  { title: 'Real-world assets', note: 'glTF loading and skinned animation', ids: ['s7', 's8', 's8b'] },
+  { title: 'Compute', note: 'WebGPU-only GPU simulation', ids: ['s9'] },
+  { title: 'Startup', note: 'Engine download, init and first frame', ids: ['s0'] },
+];
+const ABOUT = {
+  s0: 'One lit PBR cube. Measures engine download, initialization and time to first frame rather than rendering.',
+  s1: 'Individually animated meshes built from 8 geometry types with one shared material. Every object is its own draw, so this is the scene-graph and command-submission cost that dominates most real scenes.',
+  s2: '5,000 meshes spread over up to 1,000 materials that differ only in parameters. Tests how cheaply each engine switches material state.',
+  s3: 'One geometry drawn up to 500,000 times with every instance matrix rewritten each frame: the instancing path plus per-frame upload bandwidth.',
+  s4: 'A 400-sphere PBR scene lit by 8–512 moving point lights. Naive is the default forward path, measured up to 32 lights; optimized is clustered lighting where the engine has it.',
+  s5: '2,000 animated meshes over a ground plane, lit by a 4-cascade directional shadow and 4 shadow-casting spot lights.',
+  s6: 'The shadow scene rendered through an HDR post chain: bloom and ACES tone mapping, with MSAA on the scene pass.',
+  s7: 'Khronos Sponza (glTF, 50 MB of PNG/JPG textures): download and decode, time to first frame, then a scripted fly-through.',
+  s8: 'Up to 500 skinned Fox characters, each walking at its own phase: skinning, animation sampling and per-character draw overhead.',
+  s8b: 'The BrainStem model — many skinned primitives per character — to stress joint-heavy skinning.',
+  s9: 'Up to a million particles integrated in each engine\'s compute API and drawn as billboards. GPU-bound by design, WebGPU only.',
+};
+const METRICS = {
+  frameCost: { label: 'Frame cost', long: 'frame cost — the larger of CPU p95 and GPU p95, independent of vsync', get: (c) => c.frameCost?.med },
+  interval: { label: 'Interval', long: 'frame interval p50 — real throughput where the browser is uncapped', get: (c) => c.interval?.p50?.med },
+  cpu: { label: 'CPU', long: 'CPU time p50 — JavaScript inside the engine per frame', get: (c) => c.cpu?.p50?.med },
+  gpu: { label: 'GPU', long: 'GPU busy time p50 — the smaller of the pass span and the summed pass time', get: (c) => c.gpu?.p50?.med },
+};
+
+const $ = (sel) => document.querySelector(sel);
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.setAttribute('style', v);
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) e.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  return e;
+}
+const NS = 'http://www.w3.org/2000/svg';
+function s(tag, attrs, ...kids) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) if (v != null) e.setAttribute(k, v);
+  for (const k of kids.flat()) if (k != null) e.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  return e;
+}
+
+const fmtN = (n) => (n >= 1e6 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${+(n / 1e3).toFixed(1)}k` : String(n));
+const fmtMs = (v) => (v == null || !isFinite(v) ? '—' : v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : Math.round(v).toLocaleString());
+const fmtMsU = (v) => (v == null || !isFinite(v) ? '—' : `${fmtMs(v)} ms`);
+const fmtKB = (b) => `${Math.round(b / 1024).toLocaleString()} KB`;
+const fmtMB = (b) => (b == null ? '—' : `${(b / 1048576).toFixed(b < 10485760 ? 1 : 0)} MB`);
+const fmtTick = (v) => (v >= 1000 ? `${v / 1000}s` : v < 1 ? String(v) : String(v));
+
+const cellMap = new Map(DATA.cells.map((c) => [[c.browser, c.engine, c.backend, c.scenario, c.variant, c.level].join('|'), c]));
+const cell = (b, e, be, sc, v, l) => cellMap.get([b, e, be, sc, v, l].join('|'));
+const def = (id) => DATA.scenarios.find((x) => x.id === id);
+const browserNames = DATA.browsers.map((b) => b.name);
+const capped = (name) => (DATA.browsers.find((b) => b.name === name)?.calibration?.intervalP50 ?? 0) > 5;
+
+const state = { browser: browserNames.includes('Chrome') ? 'Chrome' : browserNames[0], backend: 'webgpu', variant: 'naive', metric: 'frameCost' };
+const variantFor = (d) => (d.variants.includes(state.variant) ? state.variant : d.variants[0]);
+const enginesFor = (d, backend = state.backend) => [...MAIN, 'three-classic'].filter((e) => d.engines.includes(e) && (e !== 'three-classic' || backend === 'webgl2'));
+
+function statusOf(c) {
+  if (!c) return { text: 'not run', title: 'No run for this combination', bad: false };
+  if (c.status === 'na') return { text: 'n/a', title: c.error?.replace(/^N\/A:\s*/, '') ?? 'Not applicable', bad: false };
+  if (c.status === 'error') return { text: 'failed', title: c.error ?? 'failed', bad: true };
+  if (c.status === 'skipped') return { text: 'over budget', title: 'Skipped: a lower level already took over 100 ms per frame', bad: false };
+  if (c.status === 'missing') return { text: 'not run', title: 'No run for this combination', bad: false };
+  return null;
+}
+const valueOf = (c, m = state.metric) => (c && (c.status === 'ok' || c.status === 'invalid') ? METRICS[m].get(c) : undefined);
+
+// ---------- tooltip ----------
+const tip = $('#tip');
+function showTip(x, y, title, rows) {
+  tip.replaceChildren(h('div', { class: 't' }, title), ...rows.map((r) => h('div', { class: 'r' }, h('i', { style: `background:${r.color}` }), h('b', {}, r.value), h('span', {}, r.label))));
+  tip.hidden = false;
+  const w = tip.offsetWidth, hh = tip.offsetHeight;
+  tip.style.left = `${Math.min(window.innerWidth - w - 8, x + 14)}px`;
+  tip.style.top = `${Math.max(8, Math.min(window.innerHeight - hh - 8, y - hh / 2))}px`;
+}
+const hideTip = () => (tip.hidden = true);
+
+function legend(engines, box) {
+  return h('div', { class: 'legend' }, engines.map((e) => h('span', { class: 'key' }, h('i', { class: box ? 'box' : '', style: `background:${ENG[e].color}` }), ENG[e].label)));
+}
+
+function logTicks(lo, hi) {
+  const out = [];
+  for (let p = Math.floor(Math.log10(lo)) - 1; p <= Math.ceil(Math.log10(hi)); p++) for (const m of [1, 2, 5]) {
+    const v = m * 10 ** p;
+    if (v >= lo && v <= hi) out.push(+v.toPrecision(3));
+  }
+  return out;
+}
+
+// ---------- charts ----------
+function lineChart(host, { levels, series, levelLabel, unit = 'ms' }) {
+  host.replaceChildren();
+  const pts = series.flatMap((se) => se.points.filter((p) => p.value > 0));
+  if (!pts.length) return host.append(h('p', { class: 'empty' }, 'No completed runs for this selection.'));
+  const W = Math.max(300, host.clientWidth), H = Math.round(Math.min(330, Math.max(230, W * 0.52)));
+  const m = { l: 44, r: 12, t: 14, b: 40 };
+  const budget = DATA.budgetMs;
+  const lo = Math.min(...pts.map((p) => p.value), budget) / 1.35, hi = Math.max(...pts.map((p) => p.value), budget) * 1.35;
+  const x0 = Math.log(levels[0]), x1 = Math.log(levels.at(-1));
+  const X = (v) => m.l + ((Math.log(v) - x0) / (x1 - x0)) * (W - m.l - m.r);
+  const Y = (v) => m.t + (1 - (Math.log(v) - Math.log(lo)) / (Math.log(hi) - Math.log(lo))) * (H - m.t - m.b);
+  const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, tabindex: 0, role: 'img', 'aria-label': `${levelLabel} versus ${METRICS[state.metric].label} in milliseconds, log scales` });
+  for (const t of logTicks(lo, hi)) svg.append(s('line', { class: 'grid', x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t) }), s('text', { class: 'tick', x: m.l - 7, y: Y(t), 'text-anchor': 'end', 'dominant-baseline': 'middle' }, fmtTick(t)));
+  svg.append(s('line', { class: 'axis', x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b }));
+  for (const L of levels) svg.append(s('text', { class: 'tick', x: X(L), y: H - m.b + 17, 'text-anchor': 'middle' }, fmtN(L)));
+  svg.append(s('text', { class: 'axis-label', x: W - m.r, y: H - 4, 'text-anchor': 'end' }, `${levelLabel} · ${unit} per frame, log–log`));
+  const yb = Y(budget);
+  svg.append(s('line', { class: 'budget', x1: m.l, x2: W - m.r, y1: yb, y2: yb }), s('text', { class: 'budget-label', x: m.l + 6, y: yb - 6 }, '16.7 ms · 60 fps budget'));
+  for (const se of series) {
+    const ok = se.points.filter((p) => p.value > 0);
+    if (ok.length > 1) svg.append(s('path', { class: 'line', stroke: ENG[se.engine].color, d: ok.map((p, i) => `${i ? 'L' : 'M'}${X(p.level).toFixed(1)},${Y(p.value).toFixed(1)}`).join('') }));
+    for (const p of ok) svg.append(s('circle', { class: 'dot', cx: X(p.level), cy: Y(p.value), r: 4.5, fill: ENG[se.engine].color }));
+  }
+  const cross = s('line', { class: 'cross', y1: m.t, y2: H - m.b, visibility: 'hidden' });
+  const overlay = s('rect', { x: m.l - 10, y: m.t, width: W - m.l - m.r + 20, height: H - m.t - m.b, fill: 'transparent' });
+  svg.append(cross, overlay);
+  let idx = -1;
+  const show = (i, cx, cy) => {
+    idx = i;
+    const L = levels[i];
+    cross.setAttribute('x1', X(L));
+    cross.setAttribute('x2', X(L));
+    cross.setAttribute('visibility', 'visible');
+    const rows = series.map((se) => {
+      const p = se.points.find((q) => q.level === L);
+      return { v: p?.value, color: ENG[se.engine].color, label: ENG[se.engine].label, value: p?.value > 0 ? fmtMsU(p.value) : p?.status ?? '—' };
+    }).sort((a, b) => (a.v ?? Infinity) - (b.v ?? Infinity));
+    showTip(cx, cy, `${fmtN(L)} ${levelLabel}`, rows);
+  };
+  const hide = () => {
+    cross.setAttribute('visibility', 'hidden');
+    hideTip();
+  };
+  overlay.addEventListener('pointermove', (e) => {
+    const r = svg.getBoundingClientRect();
+    const px = e.clientX - r.left;
+    let best = 0;
+    levels.forEach((L, i) => { if (Math.abs(X(L) - px) < Math.abs(X(levels[best]) - px)) best = i; });
+    show(best, e.clientX, e.clientY);
+  });
+  overlay.addEventListener('pointerleave', hide);
+  svg.addEventListener('blur', hide);
+  svg.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const i = Math.max(0, Math.min(levels.length - 1, idx + (e.key === 'ArrowRight' ? 1 : -1)));
+    const r = svg.getBoundingClientRect();
+    show(i, r.left + X(levels[i]), r.top + m.t + 30);
+  });
+  host.append(svg);
+}
+
+function roundedBar(x, y, w, t) {
+  if (w < 5) return s('rect', { x, y, width: Math.max(1.5, w), height: t });
+  return s('path', { d: `M${x},${y}h${w - 4}a4,4 0 0 1 4,4v${t - 8}a4,4 0 0 1 -4,4h${-(w - 4)}z` });
+}
+
+function barChart(host, rows, { fmt = fmtMsU, title = '' } = {}) {
+  host.replaceChildren();
+  const W = Math.max(280, host.clientWidth), labelW = W < 460 ? 104 : 168, rowH = 32, t = 16;
+  const H = rows.length * rowH + 6;
+  const max = Math.max(...rows.map((r) => r.value ?? 0)) || 1;
+  const X = (v) => (v / max) * (W - labelW - 86);
+  const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': title });
+  rows.forEach((r, i) => {
+    const y = i * rowH + 4;
+    svg.append(s('text', { class: 'rowlabel', x: 0, y: y + t / 2, 'dominant-baseline': 'middle' }, r.label));
+    svg.append(s('line', { class: 'axis', x1: labelW, x2: labelW, y1: y - 4, y2: y + t + 4 }));
+    if (r.value > 0) {
+      const g = s('g', { fill: r.color, class: 'mark' });
+      g.append(roundedBar(labelW, y, X(r.value), t));
+      const hit = s('rect', { class: 'hit', x: 0, y: y - 6, width: W, height: rowH, tabindex: 0 });
+      const on = (e) => {
+        const rect = hit.getBoundingClientRect();
+        showTip(e.clientX ?? rect.left + labelW, e.clientY ?? rect.top + rowH / 2, title, [{ color: r.color, value: fmt(r.value), label: r.label }]);
+      };
+      hit.addEventListener('pointermove', on);
+      hit.addEventListener('focus', on);
+      hit.addEventListener('pointerleave', hideTip);
+      hit.addEventListener('blur', hideTip);
+      svg.append(g, s('text', { class: 'val', x: labelW + X(r.value) + 7, y: y + t / 2, 'dominant-baseline': 'middle' }, fmt(r.value)), hit);
+    } else {
+      svg.append(s('text', { class: 'status', x: labelW + 8, y: y + t / 2, 'dominant-baseline': 'middle' }, r.status ?? 'not run'));
+    }
+  });
+  host.append(svg);
+}
+
+function dotPlot(host, rows, engines) {
+  host.replaceChildren();
+  if (!rows.length) return host.append(h('p', { class: 'empty' }, 'No scenario has both backends measured for this selection.'));
+  const W = Math.max(300, host.clientWidth), labelW = W < 520 ? 118 : 210, rowH = 34, top = 26, bot = 30;
+  const H = top + rows.length * rowH + bot;
+  const vals = rows.flatMap((r) => r.dots.map((d) => d.value)).filter((v) => v > 0);
+  const lo = Math.min(0.25, ...vals) / 1.2, hi = Math.max(4, ...vals) * 1.2;
+  const X = (v) => labelW + ((Math.log(v) - Math.log(lo)) / (Math.log(hi) - Math.log(lo))) * (W - labelW - 14);
+  const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'WebGPU speed-up over WebGL2 per scenario' });
+  for (const t of [0.25, 0.5, 1, 2, 4, 8, 16].filter((v) => v >= lo && v <= hi)) {
+    svg.append(s('line', { class: t === 1 ? 'axis' : 'grid', x1: X(t), x2: X(t), y1: top - 6, y2: H - bot + 4 }), s('text', { class: 'tick', x: X(t), y: H - 10, 'text-anchor': 'middle' }, `${t}×`));
+  }
+  svg.append(s('text', { class: 'axis-label', x: X(1) - 8, y: 12, 'text-anchor': 'end' }, '← WebGL2 faster'), s('text', { class: 'axis-label', x: X(1) + 8, y: 12 }, 'WebGPU faster →'));
+  rows.forEach((r, i) => {
+    const y = top + i * rowH + rowH / 2;
+    svg.append(s('line', { class: 'grid', x1: labelW, x2: W - 14, y1: y, y2: y }), s('text', { class: 'rowlabel', x: 0, y, 'dominant-baseline': 'middle' }, r.label));
+    for (const d of r.dots) {
+      if (!(d.value > 0)) continue;
+      const g = s('g', {});
+      const dot = s('circle', { class: 'dot mark', cx: X(d.value), cy: y, r: 5.5, fill: ENG[d.engine].color });
+      const hit = s('circle', { class: 'hit', cx: X(d.value), cy: y, r: 12, tabindex: 0 });
+      const on = (e) => {
+        const rc = hit.getBoundingClientRect();
+        showTip(e.clientX ?? rc.left + 12, e.clientY ?? rc.top + 12, r.label, [{ color: ENG[d.engine].color, value: `${d.value.toFixed(2)}×`, label: `${ENG[d.engine].label} · ${fmtMsU(d.gl)} → ${fmtMsU(d.gpu)}` }]);
+      };
+      hit.addEventListener('pointermove', on);
+      hit.addEventListener('focus', on);
+      hit.addEventListener('pointerleave', hideTip);
+      hit.addEventListener('blur', hideTip);
+      g.append(dot, hit);
+      svg.append(g);
+    }
+  });
+  host.append(svg);
+}
+
+function statusSpan(st) {
+  return h('span', { class: `st${st.bad ? ' bad' : ''}`, title: st.title }, st.text);
+}
+function valueTd(c, m) {
+  const st = statusOf(c);
+  if (st) return h('td', {}, statusSpan(st));
+  const v = valueOf(c, m);
+  return h('td', {}, fmtMs(v), c.status === 'invalid' ? h('span', { class: 'flag', title: c.error ?? 'GPU validation errors during the run' }, '!') : null);
+}
+
+// ---------- filters ----------
+function renderFilters() {
+  const f = $('#filters');
+  f.replaceChildren();
+  const seg = (name, label, opts) => h('div', { class: 'seg' }, h('span', {}, label), h('div', { class: 'opts' }, opts.map((o) => h('label', {}, h('input', { type: 'radio', name, id: `f-${name}-${o.value}`, value: o.value, checked: state[name] === o.value, disabled: o.disabled, onchange: () => { state[name] = o.value; renderAll(); } }), h('span', {}, o.label)))));
+  f.append(
+    seg('browser', 'Browser', browserNames.map((b) => ({ value: b, label: b }))),
+    seg('backend', 'Backend', [{ value: 'webgpu', label: 'WebGPU' }, { value: 'webgl2', label: 'WebGL2' }]),
+    seg('variant', 'Path', [{ value: 'naive', label: 'Naive' }, { value: 'optimized', label: 'Optimized' }]),
+    seg('metric', 'Metric', Object.entries(METRICS).map(([k, v]) => ({ value: k, label: v.label, disabled: (k === 'gpu' || k === 'frameCost') && !DATA.browsers.find((b) => b.name === state.browser)?.gpuTiming }))),
+  );
+}
+
+// ---------- scoreboard ----------
+function renderBoard() {
+  $('#board-sub').textContent = `${state.browser}, ${state.backend === 'webgpu' ? 'WebGPU' : 'WebGL2'}, ${state.variant} path where it exists. Ladder scenarios show the largest load each engine sustains inside a 60 fps frame (from frame cost: the larger of CPU and GPU p95); single scenes show frame cost in milliseconds. Best in each row is bold.`;
+  const t = $('#board');
+  t.replaceChildren();
+  const engines = MAIN;
+  t.append(h('thead', {}, h('tr', {}, h('th', {}, 'Scenario'), engines.map((e) => h('th', {}, h('span', { class: 'dotkey', style: `background:${ENG[e].color}` }), ENG[e].label)))));
+  const body = h('tbody');
+  for (const d of DATA.scenarios) {
+    if (d.id === 's0') continue;
+    if (!d.backends.includes(state.backend)) continue;
+    const v = variantFor(d);
+    const ladder = d.levels.length > 1;
+    const entries = engines.map((e) => {
+      if (ladder) {
+        const L = DATA.ladders.find((x) => x.browser === state.browser && x.engine === e && x.backend === state.backend && x.scenario === d.id && x.variant === v);
+        const first = cell(state.browser, e, state.backend, d.id, v, d.levels[0]);
+        if (!L || L.bound == null) return { st: statusOf(first) ?? { text: 'not run', title: '' } };
+        if (L.bound === 'below') return { score: 0, text: `< ${fmtN(d.levels[0])}` };
+        return { score: L.maxAt60, text: `${L.bound === 'beyond' ? '≥ ' : ''}${fmtN(L.maxAt60)}` };
+      }
+      const c = cell(state.browser, e, state.backend, d.id, v, d.levels[0]);
+      const st = statusOf(c);
+      if (st) return { st };
+      const val = c.frameCost?.med;
+      return val == null ? { st: { text: '—', title: 'no timing' } } : { score: 1 / val, text: fmtMsU(val) };
+    });
+    const best = Math.max(...entries.map((x) => x.score ?? -1));
+    const tr = h('tr', {}, h('td', {}, h('div', { class: 'scen-title-cell' }, h('span', {}, d.title), h('small', {}, ladder ? `max ${d.levelLabel} at 60 fps` : 'frame cost', v !== state.variant ? ` · ${v} only` : ''))));
+    entries.forEach((x, i) => {
+      if (x.st) return tr.append(h('td', {}, statusSpan(x.st)));
+      const frac = best > 0 ? x.score / best : 0;
+      tr.append(h('td', { class: x.score === best && best > 0 ? 'best' : '' }, x.text, h('span', { class: 'meter', 'aria-hidden': 'true' }, h('i', { style: `width:${Math.round(frac * 100)}%;background:${ENG[engines[i]].color}` }))));
+    });
+    body.append(tr);
+  }
+  t.append(body);
+}
+
+// ---------- scenario cards ----------
+const charts = [];
+function renderGroups() {
+  const root = $('#groups');
+  root.replaceChildren();
+  charts.length = 0;
+  for (const g of GROUPS) {
+    const ids = g.ids.filter((id) => def(id) && def(id).backends.includes(state.backend));
+    if (!ids.length) continue;
+    const sec = h('section', {}, h('div', { class: 'groupnote' }, g.note), h('h2', {}, g.title));
+    const stack = h('div', { class: 'stack' });
+    for (const id of ids) stack.append(scenarioCard(def(id)));
+    sec.append(stack);
+    root.append(sec);
+  }
+  requestAnimationFrame(() => charts.forEach((fn) => fn()));
+}
+
+function scenarioCard(d) {
+  const v = variantFor(d);
+  const engines = enginesFor(d);
+  // Ladders carry a wide per-level table, so they stack; single scenes sit chart-beside-table.
+  const card = h('div', { class: `card scen${d.levels.length > 1 ? ' tall' : ''}` });
+  card.append(h('div', { class: 'scen-head' }, h('h3', {}, h('span', { class: 'id' }, d.id.toUpperCase()), d.title, v !== state.variant ? h('span', { class: 'pill' }, `${v} only`) : null), h('p', {}, ABOUT[d.id] ?? '')));
+  const chartBox = h('div', {}, legend(engines, d.levels.length === 1), h('div', { class: 'chart' }));
+  const host = chartBox.lastChild;
+  const side = h('div', { class: 'tbl' });
+  const m = state.metric;
+  if (d.levels.length > 1) {
+    const series = engines.map((e) => ({
+      engine: e,
+      points: d.levels.map((L) => {
+        const c = cell(state.browser, e, state.backend, d.id, v, L);
+        return { level: L, value: valueOf(c, m), status: statusOf(c)?.text };
+      }),
+    }));
+    charts.push(() => lineChart(host, { levels: d.levels, series, levelLabel: d.levelLabel }));
+    const table = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, `${METRICS[m].label} ms`), d.levels.map((L) => h('th', {}, fmtN(L))), h('th', {}, '60 fps max'))));
+    const tb = h('tbody');
+    for (const e of engines) {
+      const L = DATA.ladders.find((x) => x.browser === state.browser && x.engine === e && x.backend === state.backend && x.scenario === d.id && x.variant === v);
+      tb.append(h('tr', {}, h('td', { class: 'eng' }, h('span', { class: 'dotkey', style: `background:${ENG[e].color}` }), ENG[e].label), d.levels.map((lv) => valueTd(cell(state.browser, e, state.backend, d.id, v, lv), m)), h('td', {}, !L || L.bound == null ? '—' : L.bound === 'below' ? `< ${fmtN(d.levels[0])}` : `${L.bound === 'beyond' ? '≥ ' : ''}${fmtN(L.maxAt60)}`)));
+    }
+    table.append(tb);
+    side.append(table);
+  } else {
+    const L = d.levels[0];
+    const rows = engines.map((e) => {
+      const c = cell(state.browser, e, state.backend, d.id, v, L);
+      return { label: ENG[e].label, color: ENG[e].color, value: valueOf(c, m), status: statusOf(c)?.text };
+    });
+    charts.push(() => barChart(host, rows, { title: `${d.title} · ${METRICS[m].label}` }));
+    const heavy = d.id === 's0' || d.id === 's7';
+    const table = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, ''), h('th', {}, 'CPU p50'), h('th', {}, 'GPU p50'), h('th', {}, 'Interval'), heavy ? [h('th', {}, 'Load'), h('th', {}, 'First frame')] : h('th', {}, 'Draws'))));
+    const tb = h('tbody');
+    for (const e of engines) {
+      const c = cell(state.browser, e, state.backend, d.id, v, L);
+      const st = statusOf(c);
+      const tr = h('tr', {}, h('td', { class: 'eng' }, h('span', { class: 'dotkey', style: `background:${ENG[e].color}` }), ENG[e].label));
+      if (st) tr.append(h('td', { colspan: heavy ? 5 : 4 }, statusSpan(st)));
+      else {
+        tr.append(valueTd(c, 'cpu'), valueTd(c, 'gpu'), valueTd(c, 'interval'));
+        if (heavy) tr.append(h('td', {}, fmtMs(c.timings?.load?.min)), h('td', {}, fmtMs(c.timings?.ttff?.min)));
+        else tr.append(h('td', {}, c.counters?.draws != null ? Math.round(c.counters.draws).toLocaleString() : '—'));
+      }
+      tb.append(tr);
+    }
+    table.append(tb);
+    side.append(table);
+  }
+  const paths = engines.map((e) => {
+    const c = d.levels.map((L) => cell(state.browser, e, state.backend, d.id, v, L)).find((x) => x?.path);
+    return c ? h('div', {}, h('b', {}, `${ENG[e].label}: `), c.path, c.notes?.length ? ` — ${c.notes.join('; ')}` : '') : null;
+  }).filter(Boolean);
+  if (paths.length) side.append(h('div', { class: 'pathnote' }, paths));
+  card.append(chartBox, side);
+  return card;
+}
+
+// ---------- browsers ----------
+function renderBrowsers() {
+  const g = $('#browsers');
+  g.replaceChildren(h('div', { class: 'hd' }, 'Scenario'), ...MAIN.map((e) => h('div', { class: 'hd' }, h('span', { class: 'dotkey', style: `background:${ENG[e].color}` }), ENG[e].label)));
+  for (const d of DATA.scenarios) {
+    if (!d.backends.includes(state.backend)) continue;
+    const L = REP[d.id] ?? d.levels[0];
+    const v = variantFor(d);
+    const vals = MAIN.flatMap((e) => browserNames.map((b) => valueOf(cell(b, e, state.backend, d.id, v, L), 'cpu') ?? 0));
+    const max = Math.max(...vals) || 1;
+    g.append(h('div', { class: 'scen-title-cell' }, h('span', {}, d.title), h('small', {}, `${fmtN(L)} ${d.levelLabel}`)));
+    for (const e of MAIN) {
+      const box = h('div', { class: 'ecell', 'data-engine': ENG[e].label });
+      for (const b of browserNames) {
+        const c = cell(b, e, state.backend, d.id, v, L);
+        const val = valueOf(c, 'cpu');
+        const st = statusOf(c);
+        box.append(h('div', { class: 'mini' }, h('span', {}, b), val > 0 ? h('div', { class: 'bar', style: `width:${Math.max(2, (val / max) * 100)}%;background:${ENG[e].color}` }) : h('span', { class: 'st', title: st?.title ?? '' }, st?.text ?? '—'), h('span', { class: 'v' }, val > 0 ? fmtMsU(val) : '')));
+      }
+      g.append(box);
+    }
+  }
+}
+
+// ---------- WebGPU vs WebGL2 ----------
+function renderSpeedup() {
+  const metric = capped(state.browser) ? 'cpu' : 'interval';
+  $('#speedup-sub').textContent = `WebGL2 time divided by WebGPU time for the same engine and scene in ${state.browser} (${metric === 'cpu' ? 'CPU p50, since this browser is vsync-capped' : 'frame interval p50: real throughput'}), mid-ladder level, ${state.variant} path where it exists. Right of 1× means the engine is faster on WebGPU.`;
+  const rows = [];
+  for (const d of DATA.scenarios) {
+    if (!d.backends.includes('webgl2') || !d.backends.includes('webgpu')) continue;
+    const L = REP[d.id] ?? d.levels[0];
+    const v = variantFor(d);
+    const dots = MAIN.map((e) => {
+      const gpu = valueOf(cell(state.browser, e, 'webgpu', d.id, v, L), metric);
+      const gl = valueOf(cell(state.browser, e, 'webgl2', d.id, v, L), metric);
+      return { engine: e, value: gpu > 0 && gl > 0 ? gl / gpu : undefined, gpu, gl };
+    });
+    if (dots.some((x) => x.value > 0)) rows.push({ label: `${d.title} · ${fmtN(L)}`, dots });
+  }
+  $('#speedup-legend').replaceWith(Object.assign(legend(MAIN, true), { id: 'speedup-legend' }));
+  const host = $('#speedup');
+  requestAnimationFrame(() => dotPlot(host, rows, MAIN));
+}
+
+// ---------- calls ----------
+function renderCalls() {
+  const t = $('#calls');
+  t.replaceChildren();
+  const cs = MAIN.map((e) => cell(state.browser, e, 'webgpu', 's1', 'naive', 1000));
+  const rows = [
+    ['Draw calls', (c) => c.counters?.draws],
+    ['setPipeline', (c) => c.counters?.setPipeline],
+    ['setBindGroup', (c) => c.counters?.setBindGroup],
+    ['setVertexBuffer', (c) => c.counters?.setVertexBuffer],
+    ['writeBuffer calls', (c) => c.counters?.writeBuffer],
+    ['writeBuffer bytes', (c) => c.counters?.writeBufferBytes, (v) => fmtKB(v)],
+    ['Bind groups created', (c) => c.counters?.createBindGroup ?? 0],
+    ['Render passes', (c) => c.counters?.renderPasses],
+    ['Queue submits', (c) => c.counters?.submits],
+    ['GPU buffers alive', (c) => c.gpuMem?.buffer, fmtMB],
+    ['GPU textures alive', (c) => c.gpuMem?.texture, fmtMB],
+    ['JS heap', (c) => c.jsHeap?.med, fmtMB],
+  ];
+  t.append(h('thead', {}, h('tr', {}, h('th', {}, `Per frame · ${state.browser} · S1 · 1,000 meshes`), MAIN.map((e) => h('th', {}, h('span', { class: 'dotkey', style: `background:${ENG[e].color}` }), ENG[e].label)))));
+  const tb = h('tbody');
+  for (const [label, get, fmt] of rows) {
+    tb.append(h('tr', {}, h('td', {}, label), cs.map((c) => {
+      const v = c ? get(c) : undefined;
+      return h('td', {}, v == null ? '—' : fmt ? fmt(v) : Math.round(v).toLocaleString());
+    })));
+  }
+  t.append(tb);
+}
+
+// ---------- footprint ----------
+function renderFootprint() {
+  const b = DATA.bundle;
+  const eng = [...MAIN, 'three-classic'];
+  if (b?.minimal) {
+    const rows = eng.filter((e) => b.minimal[e]).map((e) => ({ label: ENG[e].label, color: ENG[e].color, value: b.minimal[e].initial.brotli }));
+    requestAnimationFrame(() => barChart($('#bundle'), rows, { fmt: fmtKB, title: 'Minimal app, brotli' }));
+    const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, ''), h('th', {}, 'Raw'), h('th', {}, 'Gzip'), h('th', {}, 'Brotli'), h('th', {}, 'Benchmark adapter'))));
+    const tb = h('tbody');
+    for (const e of eng) {
+      const m = b.minimal[e], f = b.full?.[e];
+      if (!m) continue;
+      tb.append(h('tr', {}, h('td', { class: 'eng' }, h('span', { class: 'dotkey', style: `background:${ENG[e].color}` }), ENG[e].label), h('td', {}, fmtKB(m.initial.raw)), h('td', {}, fmtKB(m.initial.gzip)), h('td', {}, fmtKB(m.initial.brotli)), h('td', {}, f ? fmtKB(f.total.brotli) : '—')));
+    }
+    t.append(tb);
+    $('#bundle-tbl').replaceChildren(t);
+  } else $('#bundle').replaceChildren(h('p', { class: 'empty' }, 'Run npm run bundle-size to measure.'));
+
+  const be = state.backend;
+  $('#ttff-note').textContent = `S0 in ${state.browser} on ${be === 'webgpu' ? 'WebGPU' : 'WebGL2'}: navigation start to the first frame finished on the GPU, including engine download, init and shader compilation.`;
+  const es = [...MAIN, ...(be === 'webgl2' ? ['three-classic'] : [])];
+  const rows = es.map((e) => {
+    const c = cell(state.browser, e, be, 's0', 'naive', 1);
+    return { label: ENG[e].label, color: ENG[e].color, value: c?.timings?.ttff?.min, status: statusOf(c)?.text };
+  });
+  requestAnimationFrame(() => barChart($('#ttff'), rows, { title: 'Time to first frame' }));
+  const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, ''), h('th', {}, 'Import'), h('th', {}, 'Init'), h('th', {}, 'First frame'), h('th', {}, 'GPU memory'))));
+  const tb = h('tbody');
+  for (const e of es) {
+    const c = cell(state.browser, e, be, 's0', 'naive', 1);
+    tb.append(h('tr', {}, h('td', { class: 'eng' }, h('span', { class: 'dotkey', style: `background:${ENG[e].color}` }), ENG[e].label), h('td', {}, fmtMsU(c?.timings?.import?.min)), h('td', {}, fmtMsU(c?.timings?.init?.min)), h('td', {}, fmtMsU(c?.timings?.firstFrame?.min)), h('td', {}, c?.gpuMem ? fmtMB(c.gpuMem.buffer + c.gpuMem.texture) : '—')));
+  }
+  t.append(tb);
+  $('#ttff-tbl').replaceChildren(t);
+}
+
+// ---------- gallery ----------
+function renderGallery() {
+  const g = $('#gallery');
+  g.replaceChildren(h('div', { class: 'hd first' }, 'Scene'), ...MAIN.map((e) => h('div', { class: 'hd' }, h('span', { class: 'dotkey', style: `background:${ENG[e].color}` }), ENG[e].label)));
+  for (const d of DATA.scenarios) {
+    const v = d.variants.includes('naive') ? 'naive' : d.variants[0];
+    const shots = MAIN.map((e) => DATA.gallery.find((x) => x.engine === e && x.scenario === d.id && x.backend === 'webgpu' && x.variant === v));
+    if (!shots.some(Boolean)) continue;
+    g.append(h('div', { class: 'lab' }, d.title));
+    shots.forEach((x, i) => g.append(x ? h('img', { src: x.img, alt: `${ENG[MAIN[i]].label}: ${d.title}`, loading: 'lazy', decoding: 'async' }) : h('div', { class: 'miss' }, 'no capture')));
+  }
+}
+
+// ---------- features ----------
+function renderFeatures() {
+  const rows = [
+    ['Shader authoring', 'TSL node graphs, compiled to WGSL or GLSL', 'WGSL and GLSL shader chunks', 'WGSL and GLSL; Node Material Editor'],
+    ['Compute', 'TSL compute (instancedArray, Fn().compute)', 'Compute + StorageBuffer, WGSL', 'ComputeShader + StorageBuffer, WGSL'],
+    ['Many lights', 'ClusteredLighting addon (point lights)', 'Clustered lighting on by default', 'ClusteredLightContainer (9.0)'],
+    ['Render bundles / replay', 'BundleGroup', 'No public API', 'Non-compatibility mode, snapshot rendering'],
+    ['Pipeline pre-warm', 'compileAsync()', 'None — pipelines build on first draw', 'createRenderPipelineAsync (9.1), whenReadyAsync'],
+    ['WebGL2 fallback', 'Automatic in WebGPURenderer; classic WebGLRenderer', 'Automatic device fallback', 'Separate Engine class'],
+    ['Built-in GPU timing', 'trackTimestamp + resolveTimestampsAsync', 'device.gpuProfiler (span per frame)', 'Main pass only'],
+    ['Tree-shaking', 'Named ESM imports', 'ESM, sideEffects: false', 'Deep imports or the pure barrel (9.8+)'],
+    ['Types', '@types/three (separate package)', 'Bundled .d.ts', 'Written in TypeScript'],
+    ['License', 'MIT', 'MIT', 'Apache 2.0'],
+  ];
+  const t = $('#features');
+  t.replaceChildren(h('thead', {}, h('tr', {}, h('th', {}, ''), MAIN.map((e) => h('th', {}, h('span', { class: 'dotkey', style: `background:${ENG[e].color}` }), `${ENG[e].label} ${DATA.engines[e] ?? ''}`)))));
+  t.append(h('tbody', {}, rows.map((r) => h('tr', {}, r.map((x) => h('td', {}, x))))));
+  const loc = DATA.bundle?.loc;
+  if (loc) {
+    const sum = (e) => Object.values(loc[e] ?? {}).reduce((a, b) => a + b, 0);
+    t.tBodies[0].append(h('tr', {}, h('td', {}, 'Benchmark adapter size'), MAIN.map((e) => h('td', {}, `${sum(e).toLocaleString()} lines of TypeScript`))));
+  }
+}
+
+// ---------- method ----------
+function renderMethod() {
+  const m = $('#method');
+  const bl = DATA.browsers.map((b) => `${b.name} ${b.version.split('.').slice(0, 2).join('.')} (${b.impl}): ${b.calibration?.intervalP50 != null ? (b.calibration.intervalP50 > 5 ? `capped at ${fmtMsU(b.calibration.intervalP50)} per frame` : `uncapped, ${fmtMsU(b.calibration.intervalP50)} floor`) : 'no calibration'}; GPU timestamps ${b.gpuTiming ? 'on' : 'off'}${b.canary?.spread != null ? `; canary spread ±${(b.canary.spread * 100).toFixed(1)}%` : ''}; ${b.counts.ok} runs ok, ${b.counts.error} failed, ${b.counts.skipped} skipped past budget.`);
+  const P = (html) => { const p = h('p'); p.innerHTML = html; return p; };
+  m.replaceChildren(
+    P('<b>One harness, three engines.</b> Every run is a fresh page load. The harness owns the only <code>requestAnimationFrame</code> loop, advances scene data with a fixed 1/60 s step, and calls the engine for exactly one update-and-render. Scene data — geometry, transforms, lights, materials, camera — is generated once by a seeded RNG and handed to each engine as plain arrays, so frame <i>k</i> is the same scene everywhere.'),
+    P('<b>Measured, not reported.</b> Before any engine loads, the harness patches the WebGPU prototypes: it adds <code>timestamp-query</code> to the device, writes timestamps around every render and compute pass, and reads them back asynchronously. GPU time is the smaller of two readings. The span from the first pass start to the last pass end counts idle gaps when an engine submits passes while the CPU is still building the frame; the sum of pass durations double-counts passes that overlap on Apple’s tile-based GPU. Busy time is at most either one. With vsync and the frame-rate limit off, Chrome and Firefox let JavaScript run ahead of the GPU — commands queue in the browser’s GPU process — so their frame interval reflects CPU-side throughput and GPU time is the GPU cost; in very GPU-heavy scenes that queueing can inflate Chrome’s GPU readings. Safari’s capped loop stays coupled to the GPU, which makes it the cross-check. A separate counters run wraps the hot calls (draws, pipeline and bind-group sets, buffer writes) and tracks every buffer and texture allocation.'),
+    P('<b>Protocol.</b> Warm-up runs at least 90 frames and 1.5 s and continues until no new GPU pipeline has been created for 30 frames, so shader compilation never lands in the measurement. The measurement then covers at least 240 frames and 3 s (capped at 15 s for very slow levels). Each cell is repeated in separate page loads and the median is reported; load and startup times use the fastest repeat, since the first load of an asset runs against a cold HTTP cache. Engine order is shuffled within each block, and a fixed canary cell reruns periodically to measure run-to-run spread. Any run in another browser that issues fewer than half of Chrome’s draw calls for the same cell is marked failed: a shader can fail to compile without raising a GPU error, leaving healthy-looking timings for an empty frame. A ladder stops climbing once a level takes more than 100 ms per frame, and a run that stalls is retried once before it counts as failed. The ladders also stop short of levels that saturate the GPU for seconds per frame (forward lighting past 32 lights, 4M particles, 1M instances): on a laptop they freeze the desktop.'),
+    P('<b>Fairness.</b> 1920×1080 device pixels, 4× MSAA, ACES tone mapping and sRGB output on every engine; opaque canvases; production builds only. Light intensities were calibrated so screenshots match (three.js and Babylon.js divide Lambert diffuse by π, PlayCanvas does not). “Naive” uses each engine’s default scene graph; “optimized” uses the fastest documented fast path, named under each chart.'),
+    P(`<b>Browsers.</b> ${bl.map((x) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join('<br>')}`),
+    P('<b>Caveats.</b> One machine: an Apple M1 Pro laptop on AC power, macOS 26.6, where Metal sits under all three WebGPU implementations. Discrete GPUs, Windows (D3D12) and Android (Vulkan) will rank differently. Safari cannot be uncapped, so its interval shows the display rate and CPU/GPU times carry the comparison. Sponza’s camera path advances a fixed step per frame, so in the same measurement window an uncapped browser sweeps far more of the fly-through than a capped one: compare its load and first-frame times across browsers, and its frame times only within a browser. Firefox 150 invalidates the device when passes carry timestamp writes, so it reports no GPU time. Engine versions are pinned; each engine’s WebGPU backend is moving fast.'),
+  );
+  const f = $('#foot');
+  f.textContent = `Generated ${new Date(DATA.generatedAt).toLocaleString()} from ${DATA.browsers.map((b) => b.session).join(', ')}. Engines: ${Object.entries(DATA.engines).map(([k, v]) => `${ENG[k]?.label ?? k} ${v}`).join(' · ')}.`;
+}
+
+function renderRig() {
+  const a = DATA.machine;
+  const items = [
+    ['GPU', a ? `${a.description || a.vendor} · ${a.architecture}` : '—'],
+    ['Browsers', DATA.browsers.map((b) => `${b.name} ${b.version.split('.')[0]}`).join(' · ')],
+    ['Engines', Object.entries(DATA.engines).filter(([k]) => MAIN.includes(k)).map(([k, v]) => `${ENG[k].label} ${v}`).join(' · ')],
+    ['Frame', '1920×1080 · MSAA 4× · ACES'],
+  ];
+  $('#rig').replaceChildren(...items.map(([k, v]) => h('span', {}, `${k} `, h('b', {}, v))));
+  $('#kicker').textContent = `Benchmark report · ${new Date(DATA.generatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}`;
+}
+
+function renderFindings() {
+  if (!DATA.findings?.length) return;
+  $('#findings-sec').hidden = false;
+  $('#findings').replaceChildren(...DATA.findings.map((f) => h('div', { class: 'finding' }, h('div', {}, h('h3', {}, f.title), h('p', {}, f.body)))));
+}
+
+function renderAll() {
+  if (!DATA.browsers.find((b) => b.name === state.browser)?.gpuTiming && (state.metric === 'gpu' || state.metric === 'frameCost')) state.metric = 'cpu';
+  renderFilters();
+  renderBoard();
+  renderGroups();
+  renderBrowsers();
+  renderSpeedup();
+  renderCalls();
+  renderFootprint();
+}
+
+renderRig();
+renderFindings();
+renderAll();
+renderGallery();
+renderFeatures();
+renderMethod();
+// Charts size to their container: redraw on width changes only (re-rendering changes the height).
+let rt, lastWidth = document.querySelector('.wrap').clientWidth;
+new ResizeObserver(([entry]) => {
+  const w = Math.round(entry.contentRect.width);
+  if (w === lastWidth) return;
+  lastWidth = w;
+  clearTimeout(rt);
+  rt = setTimeout(() => {
+    charts.forEach((fn) => fn());
+    renderSpeedup();
+    renderFootprint();
+  }, 120);
+}).observe(document.querySelector('.wrap'));
+</script>

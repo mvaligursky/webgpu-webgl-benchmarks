@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>webgpu-bench</title>
+    <style>
+      body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px; background: #111; color: #ddd; }
+      a { color: #8cf; }
+      table { border-collapse: collapse; }
+      td, th { padding: 2px 10px; text-align: left; border-bottom: 1px solid #333; }
+    </style>
+  </head>
+  <body>
+    <h1>webgpu-bench</h1>
+    <p id="status">Manual runs open in standalone mode (live HUD, nothing recorded). Automated sessions are started with <code>npm run bench</code>.</p>
+    <table id="t"></table>
+    <script type="module" src="/src/harness/index.ts"></script>
+  </body>
+</html>
